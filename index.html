@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gordon's To-Do List with Timer and Alarm</title>
+
+    <!-- Link to NES.css via CDN -->
+    <link href="https://unpkg.com/nes.css/css/nes.min.css" rel="stylesheet">
+
+    <!-- Retro Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            background-color: #f0f0f0;
+            font-family: 'Press Start 2P', cursive;
+            color: #333;
+            overflow: hidden;
+            background-image: url('https://www.transparenttextures.com/patterns/grey-washed-wall.png'),
+                              radial-gradient(circle, rgba(0,0,0,0.1) 10%, transparent 10%),
+                              radial-gradient(circle, rgba(0,0,0,0.1) 15%, transparent 15%);
+            background-size: 10px 10px, 150px 150px, 200px 200px;
+            opacity: 0.9;
+        }
+
+        /* Center title and add hover effect */
+        .glow-text {
+            font-size: 36px;
+            color: #ff8c00;
+            text-shadow: 0 0 2px #ff8c00, 0 0 5px #ff8c00;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        /* Button styling */
+        .nes-btn.glow-btn {
+            background-color: #ff8c00;
+            color: #fff;
+            box-shadow: 0 0 5px rgba(255, 140, 0, 0.5);
+            border: 2px solid #ff8c00;
+            display: block;
+            margin: 0 auto;
+        }
+
+        .nes-btn.glow-btn:hover {
+            box-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+        }
+
+        /* Timer styling */
+        .timer-container {
+            position: fixed;
+            right: 20px;
+            top: 100px;
+            text-align: center;
+        }
+
+        .timer {
+            font-size: 24px;
+            color: #ff8c00;
+            margin-top: 10px;
+            border: 2px solid #ff8c00;
+            padding: 10px;
+            width: 150px;
+            box-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
+        }
+
+        .alarm-btn {
+            display: none; /* Hidden by default */
+            margin-top: 10px;
+        }
+
+        /* Scanline effect */
+        .scanlines {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(transparent 1px, rgba(255, 255, 255, 0.03) 2px);
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+
+        /* Graphic styling with orange glow */
+        .retro-image, .retro-image2, .retro-image3, .retro-image4, .retro-image5 {
+            position: fixed;
+            z-index: -2;
+            opacity: 0.4;
+            filter: contrast(150%) brightness(90%);
+            image-rendering: pixelated;
+            box-shadow: 0 0 10px #ff8c00, 0 0 20px #ff8c00;
+        }
+
+        /* Correct image sizes and positions */
+        .retro-image {
+            width: 15%;
+            bottom: 20px;
+            left: 20px;
+        }
+
+        .retro-image2 {
+            width: 15%;
+            bottom: 20px;
+            right: 20px;
+        }
+
+        .retro-image3 {
+            width: 15%;
+            bottom: 50%;
+            left: 20%;
+        }
+
+        .retro-image4 {
+            width: 15%;
+            bottom: 50%;
+            right: 20%;
+        }
+
+        .retro-image5 {
+            width: 20%;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* Complete button style */
+        .complete-btn {
+            background-color: #f0f0f0;
+            border-color: #ff8c00;
+            color: #ff8c00;
+            font-size: 12px;
+            padding: 4px 8px;
+            position: relative;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="nes-text glow-text">Gordon's To-Do List</h1>
+
+    <div class="nes-field">
+        <label for="taskInput">Enter a task:</label>
+        <input type="text" id="taskInput" class="nes-input" placeholder="Type your task here...">
+    </div>
+
+    <button class="nes-btn glow-btn" onclick="addTask()">Add Task</button>
+
+    <ul id="taskList" class="nes-list is-disc"></ul>
+
+    <!-- Countdown Timer Section -->
+    <div class="timer-container">
+        <h3 class="nes-text is-primary">Countdown Timer</h3>
+        <input type="number" id="minutes" class="nes-input" placeholder="Minutes" min="0">
+        <button class="nes-btn glow-btn" onclick="startTimer()">Start Timer</button>
+        <div id="timerDisplay" class="timer">00:00</div>
+        <button class="nes-btn glow-btn alarm-btn" id="stopAlarm" onclick="stopAlarm()">Stop Alarm</button>
+    </div>
+
+    <!-- Adding Retro Graphics -->
+    <img src="retrographic1.jpg" alt="Retro Graphic 1" class="retro-image">
+    <img src="graphic2.gif" alt="Retro Graphic 2" class="retro-image2">
+    <img src="graphic3.jpg" alt="Retro Graphic 3" class="retro-image3">
+    <img src="graphic4.gif" alt="Retro Graphic 4" class="retro-image4">
+    <img src="graphic5.gif" alt="Retro Graphic 5" class="retro-image5">
+
+    <div class="scanlines"></div>
+
+    <script>
+        // Load tasks from local storage
+        window.onload = function() {
+            var storedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            storedTasks.forEach(function(task) {
+                addTaskToDOM(task);
+            });
+        };
+
+        function addTask() {
+            var taskInput = document.getElementById('taskInput').value;
+            if (taskInput) {
+                addTaskToDOM(taskInput);
+                saveTask(taskInput); // Save to local storage
+                document.getElementById('taskInput').value = ''; // Clear input field
+            }
+        }
+
+        function saveTask(task) {
+            var tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function removeTaskFromStorage(task) {
+            var tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+            var updatedTasks = tasks.filter(function(t) {
+                return t !== task;
+            });
+            localStorage.setItem('tasks', JSON.stringify(updatedTasks));
+        }
+
+        function addTaskToDOM(task) {
+            var taskList = document.getElementById('taskList');
+            var newTask = document.createElement('li');
+            newTask.innerText = task;
+
+            var completeBtn = document.createElement('button');
+            completeBtn.innerText = "Complete?";
+            completeBtn.className = 'nes-btn complete-btn';
+
+            completeBtn.onclick = function() {
+                taskList.removeChild(newTask);
+                var completeAudio = new Audio('completeeffect.mp3');
+                completeAudio.play();
+                removeTaskFromStorage(task);
+            };
+
+            newTask.appendChild(completeBtn);
+            taskList.appendChild(newTask);
+        }
+
+        document.addEventListener('click', function() {
+            var audio = new Audio('clicksound.mp3');
+            audio.play();
+        });
+
+        // Countdown Timer Logic with Repeating Alarm
+        var timerInterval;
+        var alarmAudio;
+
+        function startTimer() {
+            var minutes = parseInt(document.getElementById('minutes').value);
+            if (isNaN(minutes) || minutes < 0) {
+                alert("Please enter a valid number of minutes.");
+                return;
+            }
+
+            var timeLeft = minutes * 60;
+            updateTimerDisplay(timeLeft);
+
+            clearInterval(timerInterval); // Clear any previous intervals
+
+            timerInterval = setInterval(function() {
+                timeLeft--;
+                updateTimerDisplay(timeLeft);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    document.getElementById('timerDisplay').innerText = "TIME UP!";
+                    playAlarm(); // Start playing the alarm when time is up
+                    document.getElementById('stopAlarm').style.display = 'block'; // Show stop button
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay(timeLeft) {
+            var minutes = Math.floor(timeLeft / 60);
+            var seconds = timeLeft % 60;
+            document.getElementById('timerDisplay').innerText =
+                (minutes < 10 ? "0" : "") + minutes + ":" +
+                (seconds < 10 ? "0" : "") + seconds;
+        }
+
+        // Function to play the repeating alarm
+        function playAlarm() {
+            alarmAudio = new Audio('timeisup.mp3');
+            alarmAudio.loop = true; // Loop the alarm sound
+            alarmAudio.play();
+        }
+
+        // Function to stop the alarm
+        function stopAlarm() {
+            if (alarmAudio) {
+                alarmAudio.pause();
+                alarmAudio.currentTime = 0; // Reset the audio to the beginning
+            }
+            document.getElementById('stopAlarm').style.display = 'none'; // Hide the stop button
+        }
+
+        // Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyD3-vEx8D1WeTBMwORWe4NAfmVs66HobFI",
+  authDomain: "retro-to-do-list.firebaseapp.com",
+  projectId: "retro-to-do-list",
+  storageBucket: "retro-to-do-list.appspot.com",
+  messagingSenderId: "613886066727",
+  appId: "1:613886066727:web:8c479d0fb997f80532ce02",
+  measurementId: "G-J9MESSK89D"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+    </script>
+
+</body>
+</html>
